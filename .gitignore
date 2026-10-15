@@ -1,0 +1,20 @@
+# Xcode per-user state (window layout, breakpoints, scheme management)
+xcuserdata/
+*.xcuserstate
+
+# Build output
+DerivedData/
+build/
+.build/
+*.ipa
+*.dSYM
+*.dSYM.zip
+
+# Swift Package Manager
+.swiftpm/
+
+# macOS
+.DS_Store
+
+# Local test videos (large, not part of the app)
+movies/

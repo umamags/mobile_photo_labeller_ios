@@ -6,18 +6,30 @@ enum PhotoSaver {
         case accessDenied
 
         var errorDescription: String? {
-            "Allow photo access in Settings → Photo Labeller to save images to your library."
+            "Allow photo access in Settings → Photo Labeller to save to your library."
         }
     }
 
     /// Saves the image to the photo library using add-only access.
     static func save(_ image: UIImage) async throws {
+        try await requestAddAccess()
+        try await PHPhotoLibrary.shared().performChanges {
+            PHAssetChangeRequest.creationRequestForAsset(from: image)
+        }
+    }
+
+    /// Saves a video file to the photo library using add-only access.
+    static func saveVideo(at url: URL) async throws {
+        try await requestAddAccess()
+        try await PHPhotoLibrary.shared().performChanges {
+            PHAssetChangeRequest.creationRequestForAssetFromVideo(atFileURL: url)
+        }
+    }
+
+    private static func requestAddAccess() async throws {
         let status = await PHPhotoLibrary.requestAuthorization(for: .addOnly)
         guard status == .authorized || status == .limited else {
             throw SaveError.accessDenied
-        }
-        try await PHPhotoLibrary.shared().performChanges {
-            PHAssetChangeRequest.creationRequestForAsset(from: image)
         }
     }
 }
