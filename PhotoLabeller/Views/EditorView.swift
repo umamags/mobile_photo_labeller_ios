@@ -14,7 +14,7 @@ struct EditorView: View {
             ScrollView {
                 VStack(spacing: 20) {
                     PhotosPicker(selection: $selectedItem, matching: .images) {
-                        Label(photo == nil ? "Choose a photo" : "Choose another photo",
+                        Label(photo == nil ? "Choose photo" : "Choose another photo",
                               systemImage: "photo.on.rectangle")
                             .frame(maxWidth: .infinity)
                     }
