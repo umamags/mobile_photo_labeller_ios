@@ -18,3 +18,4 @@ build/
 
 # Local test videos (large, not part of the app)
 movies/
+audio/

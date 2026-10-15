@@ -1,3 +1,5 @@
+import AVFoundation
+import MediaPlayer
 import Photos
 import SwiftUI
 
@@ -6,6 +8,8 @@ struct MovieMakerView: View {
 
     @State private var clips: [MovieClip] = []
     @State private var lagSeconds = 3
+    /// Background audio, shown at the top of the list. Nil when the project has none.
+    @State private var background: BackgroundAudio?
     /// The saved project these clips came from, if any. Save updates it.
     @State private var project: MovieProject?
     /// The last movie built and saved, so Share can reuse it while nothing has changed.
@@ -19,6 +23,9 @@ struct MovieMakerView: View {
     @State private var showProjectNameAlert = false
     @State private var projectNameDraft = ""
     @State private var labelEditing: LabelEditTarget?
+    @State private var showMusicPicker = false
+    @State private var showAudioFiles = false
+    @State private var showRecorder = false
 
     var body: some View {
         List {
@@ -33,13 +40,21 @@ struct MovieMakerView: View {
             }
 
             Section {
-                if clips.isEmpty {
+                if let background {
+                    Button {
+                        labelEditing = LabelEditTarget(kind: .audio, label: background.label)
+                    } label: {
+                        audioRow(background)
+                    }
+                    .buttonStyle(.plain)
+                }
+                if clips.isEmpty && background == nil {
                     Text("Nothing selected yet.")
                         .foregroundStyle(.secondary)
                 }
                 ForEach(clips) { clip in
                     Button {
-                        labelEditing = LabelEditTarget(assetID: clip.assetID, label: clip.label)
+                        labelEditing = LabelEditTarget(kind: .clip(clip.assetID), label: clip.label)
                     } label: {
                         clipRow(clip)
                     }
@@ -50,8 +65,57 @@ struct MovieMakerView: View {
             } header: {
                 Text("Order")
             } footer: {
-                Text("Tap a clip to add a label. Tap Edit to drag clips into order or remove them.")
+                Text("Tap a clip or the audio to add a label. Tap Edit to drag clips into order or remove them. The audio stays at the top.")
             }
+
+            Section {
+                Menu {
+                    Button { chooseFromMusicLibrary() } label: {
+                        Label("Music library", systemImage: "music.note")
+                    }
+                    Button { showAudioFiles = true } label: {
+                        Label("Audio files", systemImage: "folder")
+                    }
+                    Button { showRecorder = true } label: {
+                        Label("Record", systemImage: "mic")
+                    }
+                } label: {
+                    Label(background == nil ? "Add background audio" : "Change background audio",
+                          systemImage: "waveform")
+                        .frame(maxWidth: .infinity)
+                }
+
+                if background != nil {
+                    Picker("Audio mode", selection: modeBinding) {
+                        ForEach(AudioMode.allCases) { mode in
+                            Text(mode.title).tag(mode)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+
+                    if background?.mode == .mix {
+                        HStack {
+                            Text("Background")
+                            Slider(value: volumeBinding, in: 0.1...1)
+                            Text("\(Int((background?.volume ?? 0) * 100))%")
+                                .monospacedDigit()
+                                .frame(width: 48, alignment: .trailing)
+                        }
+                    }
+
+                    Button(role: .destructive) {
+                        background = nil
+                    } label: {
+                        Label("Remove audio", systemImage: "trash")
+                            .frame(maxWidth: .infinity)
+                    }
+                }
+            } header: {
+                Text("Background audio")
+            } footer: {
+                Text("Replace plays this audio instead of the videos' sound. Mix plays it under their sound. The audio is cut to the movie's length and fades out over its last 2 seconds.")
+            }
+            .disabled(isWorking)
 
             Section {
                 Picker("Time per photo", selection: $lagSeconds) {
@@ -116,9 +180,30 @@ struct MovieMakerView: View {
         .sheet(isPresented: $showProjects) {
             ProjectListView(onOpen: openProject)
         }
+        .sheet(isPresented: $showMusicPicker) {
+            MusicPickerView { item in
+                showMusicPicker = false
+                importMusic(item)
+            }
+            .ignoresSafeArea()
+        }
+        .sheet(isPresented: $showAudioFiles) {
+            AudioFilePickerView { file in
+                background = BackgroundAudio(relativePath: file.relativePath,
+                                             name: file.name,
+                                             label: "",
+                                             mode: .mix,
+                                             volume: 0.6)
+            }
+        }
+        .sheet(isPresented: $showRecorder) {
+            RecordAudioView { audio in
+                background = audio
+            }
+        }
         .sheet(item: $labelEditing) { target in
             LabelEditorView(initialText: target.label) { text in
-                setLabel(text, for: target.assetID)
+                setLabel(text, for: target.kind)
             }
         }
         .sheet(item: $shareItem) { item in
@@ -129,7 +214,7 @@ struct MovieMakerView: View {
             Button("Save") { saveProject(named: projectNameDraft) }
             Button("Cancel", role: .cancel) {}
         } message: {
-            Text("Name this set of photos and videos.")
+            Text("Name this set of photos, videos and audio.")
         }
         .alert("Create Video", isPresented: Binding(
             get: { alertText != nil },
@@ -150,6 +235,29 @@ struct MovieMakerView: View {
                 .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 14))
             }
         }
+    }
+
+    private func audioRow(_ audio: BackgroundAudio) -> some View {
+        HStack(spacing: 12) {
+            Image(systemName: "waveform")
+                .font(.title2)
+                .foregroundStyle(.tint)
+                .frame(width: 56, height: 56)
+                .background(Color.accentColor.opacity(0.12), in: RoundedRectangle(cornerRadius: 8))
+            VStack(alignment: .leading, spacing: 2) {
+                Text(audio.name)
+                    .lineLimit(1)
+                Text(audio.label.isEmpty ? "Tap to add a label" : audio.label)
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+            }
+            Spacer()
+            Text(audio.mode.title)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
+        .contentShape(Rectangle())
     }
 
     private func clipRow(_ clip: MovieClip) -> some View {
@@ -173,7 +281,29 @@ struct MovieMakerView: View {
         .contentShape(Rectangle())
     }
 
-    // MARK: - Selection and labels
+    // MARK: - Bindings
+
+    private var modeBinding: Binding<AudioMode> {
+        Binding(
+            get: { background?.mode ?? .mix },
+            set: { mode in updateBackground { $0.mode = mode } }
+        )
+    }
+
+    private var volumeBinding: Binding<Double> {
+        Binding(
+            get: { Double(background?.volume ?? 0.6) },
+            set: { volume in updateBackground { $0.volume = Float(volume) } }
+        )
+    }
+
+    private func updateBackground(_ change: (inout BackgroundAudio) -> Void) {
+        guard var audio = background else { return }
+        change(&audio)
+        background = audio
+    }
+
+    // MARK: - Selection, labels and audio
 
     /// Takes the gallery's choice and its order. Items that were already chosen keep their labels.
     private func applySelection(_ assets: [PHAsset]) {
@@ -187,9 +317,14 @@ struct MovieMakerView: View {
         }
     }
 
-    private func setLabel(_ text: String, for assetID: String) {
-        guard let index = clips.firstIndex(where: { $0.assetID == assetID }) else { return }
-        clips[index].label = text
+    private func setLabel(_ text: String, for kind: LabelEditTarget.Kind) {
+        switch kind {
+        case .audio:
+            updateBackground { $0.label = text }
+        case .clip(let assetID):
+            guard let index = clips.firstIndex(where: { $0.assetID == assetID }) else { return }
+            clips[index].label = text
+        }
     }
 
     private func moveClips(from offsets: IndexSet, to destination: Int) {
@@ -198,6 +333,34 @@ struct MovieMakerView: View {
 
     private func deleteClips(at offsets: IndexSet) {
         clips.remove(atOffsets: offsets)
+    }
+
+    /// Asks for Music library access, then opens the Music picker.
+    private func chooseFromMusicLibrary() {
+        Task {
+            let status = await MPMediaLibrary.requestAuthorization()
+            guard status == .authorized else {
+                alertText = "Allow Media & Apple Music access in Settings → Photo Labeller to choose songs."
+                return
+            }
+            showMusicPicker = true
+        }
+    }
+
+    private func importMusic(_ item: MPMediaItem?) {
+        guard let item else { return }
+        Task {
+            do {
+                let path = try await AudioStore.importLibraryItem(item)
+                background = BackgroundAudio(relativePath: path,
+                                             name: item.title ?? AudioStore.displayName(for: path),
+                                             label: "",
+                                             mode: .mix,
+                                             volume: 0.6)
+            } catch {
+                alertText = error.localizedDescription
+            }
+        }
     }
 
     // MARK: - Projects
@@ -221,6 +384,7 @@ struct MovieMakerView: View {
         updated.name = trimmed
         updated.lagSeconds = lagSeconds
         updated.clips = clips
+        updated.audio = background
         updated.updatedAt = Date()
         do {
             try ProjectStore.save(updated)
@@ -235,6 +399,7 @@ struct MovieMakerView: View {
         project = opened
         clips = opened.clips
         lagSeconds = opened.lagSeconds
+        background = opened.audio
     }
 
     // MARK: - Building and sharing
@@ -265,7 +430,7 @@ struct MovieMakerView: View {
         defer { isWorking = false }
         do {
             let inputs = try await buildInputs()
-            let url = try await MovieBuilder.build(clips: inputs, lagSeconds: lagSeconds)
+            let url = try await MovieBuilder.build(clips: inputs, lagSeconds: lagSeconds, background: try backgroundInput())
             try await PhotoSaver.saveVideo(at: url)
             if let previous = lastBuild?.url {
                 try? FileManager.default.removeItem(at: previous)
@@ -298,11 +463,18 @@ struct MovieMakerView: View {
         return inputs
     }
 
-    /// Describes the current clips, labels and lag. A saved movie is reused only while this matches.
+    private func backgroundInput() throws -> MovieBuilder.Background? {
+        guard let background else { return nil }
+        let url = AudioStore.url(for: background.relativePath)
+        guard FileManager.default.fileExists(atPath: url.path) else { throw InputError.missingAudio }
+        return MovieBuilder.Background(url: url, mode: background.mode, volume: background.volume)
+    }
+
+    /// Describes the current clips, labels, audio and lag. A saved movie is reused only while this matches.
     private var signature: String {
         let encoder = JSONEncoder()
         encoder.outputFormatting = .sortedKeys
-        let data = (try? encoder.encode(MovieInput(clips: clips, lagSeconds: lagSeconds))) ?? Data()
+        let data = (try? encoder.encode(MovieInput(clips: clips, lagSeconds: lagSeconds, background: background))) ?? Data()
         return String(decoding: data, as: UTF8.self)
     }
 }
@@ -315,23 +487,36 @@ private struct BuildRecord {
 private struct MovieInput: Encodable {
     let clips: [MovieClip]
     let lagSeconds: Int
+    let background: BackgroundAudio?
 }
 
 private struct LabelEditTarget: Identifiable {
-    let assetID: String
+    enum Kind: Equatable {
+        case clip(String)
+        case audio
+    }
+
+    let kind: Kind
     let label: String
 
-    var id: String { assetID }
+    var id: String {
+        switch kind {
+        case .clip(let assetID): assetID
+        case .audio: "background-audio"
+        }
+    }
 }
 
 private enum InputError: LocalizedError {
     case missing
     case unavailable
+    case missingAudio
 
     var errorDescription: String? {
         switch self {
         case .missing: "One of the photos or videos is no longer in your library."
         case .unavailable: "Could not load one of the photos or videos. Check your connection if it is stored in iCloud."
+        case .missingAudio: "The background audio file is missing. Choose the audio again."
         }
     }
 }

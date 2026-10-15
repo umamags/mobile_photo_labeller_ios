@@ -29,6 +29,13 @@ enum MovieBuilder {
         }
     }
 
+    /// Background audio for the movie.
+    struct Background {
+        let url: URL
+        let mode: AudioMode
+        let volume: Float
+    }
+
     /// A label and the time range it is shown for.
     private struct Overlay {
         let image: CGImage
@@ -36,7 +43,8 @@ enum MovieBuilder {
     }
 
     /// Each photo is shown for `lagSeconds`. Each video plays in full, with its sound.
-    static func build(clips: [Clip], lagSeconds: Int) async throws -> URL {
+    /// Background audio, if any, is cut to the movie's length and fades out at the end.
+    static func build(clips: [Clip], lagSeconds: Int, background: Background? = nil) async throws -> URL {
         guard !clips.isEmpty else { throw BuildError.noClips }
 
         let composition = AVMutableComposition()
@@ -67,7 +75,8 @@ enum MovieBuilder {
             guard let sourceVideo = try await asset.loadTracks(withMediaType: .video).first else { continue }
             let range = CMTimeRange(start: .zero, duration: duration)
             try videoTrack.insertTimeRange(range, of: sourceVideo, at: cursor)
-            if let sourceAudio = try await asset.loadTracks(withMediaType: .audio).first {
+            // In replace mode the video's own sound is left out.
+            if background?.mode != .replace, let sourceAudio = try await asset.loadTracks(withMediaType: .audio).first {
                 if audioTrack == nil {
                     audioTrack = composition.addMutableTrack(withMediaType: .audio,
                                                              preferredTrackID: kCMPersistentTrackID_Invalid)
@@ -88,6 +97,20 @@ enum MovieBuilder {
 
         guard cursor > .zero else { throw BuildError.noClips }
 
+        // Background audio starts at the beginning and is cut to the movie's length.
+        if let background, let musicTrack = composition.addMutableTrack(withMediaType: .audio,
+                                                                        preferredTrackID: kCMPersistentTrackID_Invalid) {
+            let musicAsset = AVURLAsset(url: background.url)
+            let musicLength = min(try await musicAsset.load(.duration), cursor)
+            // Replace plays the audio at full level; mix uses the chosen background level.
+            let level = background.mode == .replace ? 1 : background.volume
+            let prepared = AVURLAsset(url: try prepareMusic(background.url, length: musicLength.seconds, level: level))
+            guard let preparedTrack = try await prepared.loadTracks(withMediaType: .audio).first else {
+                throw BuildError.failed("Could not prepare the background audio.")
+            }
+            try musicTrack.insertTimeRange(CMTimeRange(start: .zero, duration: musicLength), of: preparedTrack, at: .zero)
+        }
+
         let instruction = AVMutableVideoCompositionInstruction()
         instruction.timeRange = CMTimeRange(start: .zero, duration: cursor)
         instruction.layerInstructions = [layer]
@@ -98,6 +121,57 @@ enum MovieBuilder {
         videoComposition.instructions = [instruction]
 
         return try await render(composition, videoComposition: videoComposition, overlays: overlays)
+    }
+
+    /// Writes the background audio to a temporary M4A file, cut to `length`, at `level`, and faded
+    /// out over the last 2 seconds. The gain is applied to each sample directly.
+    private static func prepareMusic(_ source: URL, length: Double, level: Float) throws -> URL {
+        let input = try AVAudioFile(forReading: source)
+        let format = input.processingFormat
+        let sampleRate = format.sampleRate
+        let channels = Int(format.channelCount)
+        let output = try AVAudioFile(
+            forWriting: temporaryURL(extension: "m4a"),
+            settings: [
+                AVFormatIDKey: kAudioFormatMPEG4AAC,
+                AVSampleRateKey: sampleRate,
+                AVNumberOfChannelsKey: channels,
+                AVEncoderBitRateKey: 192_000
+            ],
+            commonFormat: .pcmFormatFloat32,
+            interleaved: false
+        )
+
+        let totalFrames = min(input.length, AVAudioFramePosition(length * sampleRate))
+        let fadeStart = max(0, length - 2)
+        let chunkSize: AVAudioFrameCount = 4096
+        guard let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: chunkSize),
+              let channelData = buffer.floatChannelData else {
+            throw BuildError.failed("Could not read the background audio.")
+        }
+
+        var written: AVAudioFramePosition = 0
+        while written < totalFrames {
+            let wanted = AVAudioFrameCount(min(AVAudioFramePosition(chunkSize), totalFrames - written))
+            try input.read(into: buffer, frameCount: wanted)
+            let count = Int(buffer.frameLength)
+            guard count > 0 else { break }
+
+            for frame in 0..<count {
+                let time = Double(written) + Double(frame)
+                let seconds = time / sampleRate
+                var gain = level
+                if seconds > fadeStart {
+                    gain *= Float(max(0, 1 - (seconds - fadeStart) / 2))
+                }
+                for channel in 0..<channels {
+                    channelData[channel][frame] *= gain
+                }
+            }
+            try output.write(from: buffer)
+            written += AVAudioFramePosition(count)
+        }
+        return output.url
     }
 
     /// Maps a source video onto the output frame, keeping its shape and centring it with black bars.
@@ -267,9 +341,11 @@ enum MovieBuilder {
         videoOutput.videoComposition = videoComposition
         reader.add(videoOutput)
 
-        var audioOutput: AVAssetReaderTrackOutput?
-        if let audioTrack = try await composition.loadTracks(withMediaType: .audio).first {
-            let output = AVAssetReaderTrackOutput(track: audioTrack, outputSettings: [
+        // The audio mix output combines all audio tracks, with the background level and fade applied.
+        var audioOutput: AVAssetReaderAudioMixOutput?
+        let audioTracks = try await composition.loadTracks(withMediaType: .audio)
+        if !audioTracks.isEmpty {
+            let output = AVAssetReaderAudioMixOutput(audioTracks: audioTracks, audioSettings: [
                 AVFormatIDKey: kAudioFormatLinearPCM,
                 AVSampleRateKey: 44100,
                 AVNumberOfChannelsKey: 2,

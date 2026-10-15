@@ -28,6 +28,11 @@
 		BF_VIEW_GALLERY /* MediaGalleryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FR_VIEW_GALLERY /* MediaGalleryView.swift */; };
 		BF_VIEW_PROJECTS /* ProjectListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FR_VIEW_PROJECTS /* ProjectListView.swift */; };
 		BF_VIEW_LABEL /* LabelEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FR_VIEW_LABEL /* LabelEditorView.swift */; };
+		BF_MODEL_BG_AUDIO /* BackgroundAudio.swift in Sources */ = {isa = PBXBuildFile; fileRef = FR_MODEL_BG_AUDIO /* BackgroundAudio.swift */; };
+		BF_SVC_AUDIO_STORE /* AudioStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = FR_SVC_AUDIO_STORE /* AudioStore.swift */; };
+		BF_VIEW_MUSIC /* MusicPickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FR_VIEW_MUSIC /* MusicPickerView.swift */; };
+		BF_VIEW_AUDIO_FILES /* AudioFilePickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FR_VIEW_AUDIO_FILES /* AudioFilePickerView.swift */; };
+		BF_VIEW_RECORD /* RecordAudioView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FR_VIEW_RECORD /* RecordAudioView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -53,6 +58,11 @@
 		FR_VIEW_GALLERY /* MediaGalleryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaGalleryView.swift; sourceTree = "<group>"; };
 		FR_VIEW_PROJECTS /* ProjectListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectListView.swift; sourceTree = "<group>"; };
 		FR_VIEW_LABEL /* LabelEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LabelEditorView.swift; sourceTree = "<group>"; };
+		FR_MODEL_BG_AUDIO /* BackgroundAudio.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackgroundAudio.swift; sourceTree = "<group>"; };
+		FR_SVC_AUDIO_STORE /* AudioStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioStore.swift; sourceTree = "<group>"; };
+		FR_VIEW_MUSIC /* MusicPickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MusicPickerView.swift; sourceTree = "<group>"; };
+		FR_VIEW_AUDIO_FILES /* AudioFilePickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioFilePickerView.swift; sourceTree = "<group>"; };
+		FR_VIEW_RECORD /* RecordAudioView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordAudioView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -80,6 +90,7 @@
 				FR_TEXTLABEL /* TextLabel.swift */,
 				FR_CLIP /* MovieClip.swift */,
 				FR_MODEL_PROJECT /* MovieProject.swift */,
+				FR_MODEL_BG_AUDIO /* BackgroundAudio.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -112,6 +123,7 @@
 				FR_BUILDER /* MovieBuilder.swift */,
 				FR_SVC_STORE /* ProjectStore.swift */,
 				FR_SVC_LIBRARY /* PhotoLibrary.swift */,
+				FR_SVC_AUDIO_STORE /* AudioStore.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -130,6 +142,9 @@
 				FR_VIEW_GALLERY /* MediaGalleryView.swift */,
 				FR_VIEW_PROJECTS /* ProjectListView.swift */,
 				FR_VIEW_LABEL /* LabelEditorView.swift */,
+				FR_VIEW_MUSIC /* MusicPickerView.swift */,
+				FR_VIEW_AUDIO_FILES /* AudioFilePickerView.swift */,
+				FR_VIEW_RECORD /* RecordAudioView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -213,6 +228,11 @@
 				BF_SAVER /* PhotoSaver.swift in Sources */,
 				BF_HOME /* HomeView.swift in Sources */,
 				BF_ROOT /* RootView.swift in Sources */,
+				BF_MODEL_BG_AUDIO /* BackgroundAudio.swift in Sources */,
+				BF_SVC_AUDIO_STORE /* AudioStore.swift in Sources */,
+				BF_VIEW_MUSIC /* MusicPickerView.swift in Sources */,
+				BF_VIEW_AUDIO_FILES /* AudioFilePickerView.swift in Sources */,
+				BF_VIEW_RECORD /* RecordAudioView.swift in Sources */,
 				BF_CLIP /* MovieClip.swift in Sources */,
 				BF_BUILDER /* MovieBuilder.swift in Sources */,
 				BF_MOVIE /* MovieMakerView.swift in Sources */,
@@ -327,6 +347,9 @@
 				INFOPLIST_KEY_CFBundleDisplayName = "Photo Labeller";
 				INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription = "Allow Photo Labeller to save labelled photos to your library.";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Allow Photo Labeller to choose photos and videos for your movies and projects.";
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Allow Photo Labeller to record audio for your movies.";
+				INFOPLIST_KEY_NSAppleMusicUsageDescription = "Allow Photo Labeller to use songs from your music library as background audio.";
+				INFOPLIST_FILE = PhotoLabeller/Info.plist;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -353,6 +376,9 @@
 				INFOPLIST_KEY_CFBundleDisplayName = "Photo Labeller";
 				INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription = "Allow Photo Labeller to save labelled photos to your library.";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Allow Photo Labeller to choose photos and videos for your movies and projects.";
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Allow Photo Labeller to record audio for your movies.";
+				INFOPLIST_KEY_NSAppleMusicUsageDescription = "Allow Photo Labeller to use songs from your music library as background audio.";
+				INFOPLIST_FILE = PhotoLabeller/Info.plist;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",

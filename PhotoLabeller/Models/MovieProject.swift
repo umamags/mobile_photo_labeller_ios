@@ -6,5 +6,7 @@ struct MovieProject: Identifiable, Codable {
     var name: String
     var lagSeconds: Int
     var clips: [MovieClip]
+    /// Optional, so projects saved before background audio existed still open.
+    var audio: BackgroundAudio? = nil
     var updatedAt = Date()
 }
