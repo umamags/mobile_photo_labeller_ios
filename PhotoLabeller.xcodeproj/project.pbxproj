@@ -13,6 +13,8 @@
 		BF_CONTROLS /* LabelControls.swift in Sources */ = {isa = PBXBuildFile; fileRef = FR_CONTROLS /* LabelControls.swift */; };
 		BF_EDITOR /* EditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FR_EDITOR /* EditorView.swift */; };
 		BF_EXPORTER /* LabelExporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = FR_EXPORTER /* LabelExporter.swift */; };
+		BF_HOME /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FR_HOME /* HomeView.swift */; };
+		BF_ROOT /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FR_ROOT /* RootView.swift */; };
 		BF_SAVER /* PhotoSaver.swift in Sources */ = {isa = PBXBuildFile; fileRef = FR_SAVER /* PhotoSaver.swift */; };
 		BF_SHARE /* ShareSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = FR_SHARE /* ShareSheet.swift */; };
 		BF_TEXTLABEL /* TextLabel.swift in Sources */ = {isa = PBXBuildFile; fileRef = FR_TEXTLABEL /* TextLabel.swift */; };
@@ -25,6 +27,8 @@
 		FR_CONTROLS /* LabelControls.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LabelControls.swift; sourceTree = "<group>"; };
 		FR_EDITOR /* EditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditorView.swift; sourceTree = "<group>"; };
 		FR_EXPORTER /* LabelExporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LabelExporter.swift; sourceTree = "<group>"; };
+		FR_HOME /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
+		FR_ROOT /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
 		FR_PRODUCT /* PhotoLabeller.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = PhotoLabeller.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		FR_SAVER /* PhotoSaver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoSaver.swift; sourceTree = "<group>"; };
 		FR_SHARE /* ShareSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareSheet.swift; sourceTree = "<group>"; };
@@ -94,6 +98,8 @@
 				FR_CANVAS /* LabelCanvas.swift */,
 				FR_CONTROLS /* LabelControls.swift */,
 				FR_SHARE /* ShareSheet.swift */,
+				FR_HOME /* HomeView.swift */,
+				FR_ROOT /* RootView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -175,6 +181,8 @@
 				BF_SHARE /* ShareSheet.swift in Sources */,
 				BF_EXPORTER /* LabelExporter.swift in Sources */,
 				BF_SAVER /* PhotoSaver.swift in Sources */,
+				BF_HOME /* HomeView.swift in Sources */,
+				BF_ROOT /* RootView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

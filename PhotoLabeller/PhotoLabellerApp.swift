@@ -4,7 +4,7 @@ import SwiftUI
 struct PhotoLabellerApp: App {
     var body: some Scene {
         WindowGroup {
-            EditorView()
+            RootView()
         }
     }
 }
